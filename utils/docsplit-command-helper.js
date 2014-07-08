@@ -1,4 +1,4 @@
-FileSchema.statics.createSnapshot = function (filepath, callback) {
+exports.createSnapshot = function (filepath, callback) {
     var FFmpegmeta = FFmpeg.Metadata;
 
     new FFmpegmeta(filepath, function (metadata, err) {
@@ -28,7 +28,7 @@ FileSchema.statics.createSnapshot = function (filepath, callback) {
     });
 };
 
-FileSchema.statics.createPDFCommand = function (filepath, callback) {
+exports.createPDFCommand = function (filepath, callback) {
     console.log('------------------------------------');
     console.log('\n> DIR Scan - 1');
     console.log(fs.readdirSync(path.dirname(filepath)));
@@ -49,7 +49,7 @@ FileSchema.statics.createPDFCommand = function (filepath, callback) {
     });
 };
 
-FileSchema.statics.createPageshotCommand = function (filepath, callback) {
+exports.createPageshotCommand = function (filepath, callback) {
     console.log('------------------------------------');
     console.log('\n> DIR Scan - 3');
     console.log(fs.readdirSync(path.dirname(filepath)));
@@ -73,7 +73,7 @@ FileSchema.statics.createPageshotCommand = function (filepath, callback) {
     });
 };
 
-FileSchema.statics.createPageLengthCommand = function (filepath, callback) {
+exports.createPageLengthCommand = function (filepath, callback) {
     console.log('------------------------------------');
     console.log('\n> DIR Scan - 5');
     console.log(fs.readdirSync(path.dirname(filepath)));
@@ -94,7 +94,7 @@ FileSchema.statics.createPageLengthCommand = function (filepath, callback) {
     });
 };
 
-FileSchema.statics.createTextCommand = function (filepath, callback) {
+exports.createTextCommand = function (filepath, callback) {
     return commandFactory.TextCommand(filepath, ['no-ocr'], {
         "output": path.dirname(filepath)
     }, function (error, stderr, stdout) {
@@ -110,7 +110,7 @@ FileSchema.statics.createTextCommand = function (filepath, callback) {
     });
 };
 
-FileSchema.statics.getTextFromFile = function (mimetype, filepath, callback) {
+exports.getTextFromFile = function (mimetype, filepath, callback) {
     console.log('------------------------------------');
     console.log('\n> DIR Scan - 7');
     console.log(fs.readdirSync(path.dirname(filepath)));

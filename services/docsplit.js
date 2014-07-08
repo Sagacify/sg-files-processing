@@ -189,7 +189,7 @@ exports.createDocument = function () {
     });
 };
 
-FileSchema.statics.createFile = function (args, callback) {
+exports.createFile = function (args, callback) {
     if (!args.base64data) {
         return callback(new SGError("no data for file"), null);
     }
@@ -217,7 +217,7 @@ FileSchema.statics.createFile = function (args, callback) {
     });
 };
 
-FileSchema.statics.removeFiles = function (files, callback) {
+exports.removeFiles = function (files, callback) {
     var filenames = [];
 
     async.each(files, function (file, callback) {
