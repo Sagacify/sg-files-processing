@@ -1,5 +1,5 @@
 // --output or -o can be passed to any command in order to store the generated files in a directory of your choosing. 
-var nodeShell = require('../../../lib/child_process/child_process');
+var nodeShell = require('../libs/node-lib/child_process/child_process');
 var async = require("async");
 var os = require('os');
 
