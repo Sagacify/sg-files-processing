@@ -1,8 +1,8 @@
 var commandFactory = require('../utils/docsplit-command');
-var fileManager = require('../libs/node-lib/file/file_manager');
-var contentType = require('../libs/node-lib/mimetypes/content_type').ext;
-var is = require('../libs/node-lib/strict_typing/validateType');
-var sanitize = require('../libs/node-lib/escaping/Sanitize');
+var fileManager = require('node-lib').file_manager;
+var contentType = require('node-lib').content_type.ext;
+var is = require('node-lib').validateType;
+var sanitize = require('node-lib').sanitize;
 
 var fs = require('fs-extra');
 var path = require('path');

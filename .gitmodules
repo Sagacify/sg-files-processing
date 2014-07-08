@@ -1,3 +1,0 @@
-[submodule "libs/node-lib"]
-	path = libs/node-lib
-	url = git@github.com:Sagacify/node-lib.git

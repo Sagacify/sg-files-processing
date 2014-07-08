@@ -23,7 +23,8 @@
 		"unzip": "latest",
 		"adm-zip": "latest",
 		"tar": "latest",
-		"fs-extra": "latest"
+		"fs-extra": "latest",
+		"node-lib": "git+ssh://git@github.com:Sagacify/node-lib.git"
 	},
 	"scripts": {
 		"preinstall": "if gem list -i docsplit; then echo 'coucou'; fi"
