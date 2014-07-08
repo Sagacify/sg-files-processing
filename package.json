@@ -1,0 +1,31 @@
+{
+	"name": "sg-files-processing",
+	"description": "Sagacify Files Processing",
+	"version": "0.0.1",
+	"private": true,
+	"author": "Sagacify (https://github.com/Sagacify)",
+	"engines": {
+		"node": "latest"
+	},
+	"main": "services/docsplit",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Sagacify/sg-files-processing.git"
+	},
+	"dependencies": {
+		"async": "latest",
+		"aws-sdk": "latest",
+		"node-uuid": "latest",
+		"tmp": "latest",
+		"mime": "latest",
+		"fluent-ffmpeg": "latest",
+		"mv": "latest",
+		"unzip": "latest",
+		"adm-zip": "latest",
+		"tar": "latest",
+		"fs-extra": "latest"
+	},
+	"scripts": {
+		"preinstall": "if gem list -i docsplit; then echo 'coucou'; fi"
+	}
+}
