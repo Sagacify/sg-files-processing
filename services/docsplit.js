@@ -1,165 +1,192 @@
 var commandFactory = require('../utils/docsplit-command');
-var fileManager = require('node-lib').file_manager;
+var docsplitHelper = require('../helpers/docsplit-helper');
+
 var contentType = require('node-lib').content_type.ext;
-// var is = require('node-lib').validateType;
 var sanitize = require('node-lib').sanitize;
+
+var sgFilesSystem = require('sg-files-system');
+var FSService = sgFilesSystem.FSService;
+
+var SgMessagingServer = require('sg-messaging-server');
+var sgMessagingServer = new SgMessagingServer();
 
 var fs = require('fs-extra');
 var path = require('path');
 var async = require('async');
-var FFmpeg = require('fluent-ffmpeg');
 
-/*
-    args 
-        * filepath
-        * filename (with extension)
-        * mimetype (TODO : fallback identify here for separation of concern)
-*/
-exports.extractAll = function (args, callback) {
-    // var self = this;
+exports.extractAll = function (file, fileConfig, s3Config, callback) {
+    var self = this;
+    var s3Service = new sgFilesSystem.S3Service(s3Config);
+    file.secure = true;
 
-    // fs.exists(args.filepath, function (exists) {
-    //     if (!exists) {
-    //         return callback(new SGError(args.filepath + " doesn't exist !"));
-    //     }
+    // TODO change fileConfig.bucket with file.secure
+    s3Service.getFileFromS3AndWriteItToFileSystem(fileConfig.key, fileConfig.bucket, function (err, filepath) {
+        if (err) {
+            return callback(err);
+        }
 
-    //     console.log("mimetype : " + args.mimetype);
-    //     var filename = args.filename;
-    //     args.title = filename;
-    //     console.log("title : " + args.title);
-    //     args.filename = contentType.getName(filename);
-    //     console.log("filename : " + args.filename);
-    //     args.extension = contentType.getExt(filename);
-    //     console.log("extension : " + args.extension);
+        file.filepath = filepath;
 
-    //     // rename file to prevent conflicts
-    //     self.randomRenameFile(args.filepath, args.extension, function (err, filepath) {
-    //         if (err) {
-    //             return callback(err);
-    //         }
+        fs.exists(file.filepath, function (exists) {
+            if (!exists) {
+                return callback(new SGError(file.filepath + " doesn't exist !"));
+            }
 
-    //         args.filepath = filepath;
+            var filename = fileConfig.name;
+            file.title = filename;
+            console.log("title : " + file.title);
+            file.filename = contentType.getName(filename);
+            console.log("filename : " + file.filename);
+            file.extension = contentType.getExt(filename);
+            console.log("extension : " + file.extension);
+            file.mimetype = contentType.getContentType(file.extension);
+            console.log("mimetype : " + file.mimetype);
 
-    //         console.log("filepath: " + args.filepath);
-
-    //         args.secure = true;
-    //     });
-    // });
-
-    callback(null, {
-        file: 'file info'
+            switch (contentType.getMediaType(file.mimetype)) {
+            case 'IMAGE':
+                exports.createImage(file, callback);
+                break;
+            case 'VIDEO':
+                exports.createVideo(file, s3Service, callback);
+                break;
+            case 'ARCHIVE':
+                return callback(new SGError('NOT_YET_SUPPORTED'));
+            case 'DOCUMENT':
+                exports.createDocument(file, s3Service, callback);
+                break;
+            }
+        });
     });
 };
 
-exports.createVideo = function () {
-    if (contentType.isVideo(args.mimetype)) {
-        me.createSnapshot(args.filepath, function (err, snapshot) {
+exports.createVideo = function (file, s3Service, callback) {
+    if (!contentType.isVideo(file.mimetype)) {
+        return callback(new SGError('NOT_VIDEO'));
+    }
+
+    docsplitHelper.createSnapshot(file.filepath, s3Service, function (err, snapshot) {
+        if (err) {
+            return callback(err);
+        }
+
+        file.thumbnails = {
+            large: snapshot
+        };
+
+        sgMessagingServer().publish('file:thumbnail', {
+            file: file
+        }, function (err, response) {
+            console.log(response);
+        });
+
+        fs.unlink(file.filepath, function (err) {
             if (err) {
                 return callback(err);
             }
 
-            me.sendThumbnailToSockets(args.author, args.socketId, snapshot);
-
-            args.thumbnails = {
-                large: snapshot
-            };
-
-            fileManager.uploadThenDeleteLocalFile(args.filepath, filename, args.extension, true, function (err, videoFilepath) {
-                if (err) {
-                    return callback(err);
-                }
-
-                args._id = videoFilepath;
-
-                FileModel(args).save(function (err, file) {
-                    callback(err, file ? file : null);
-                });
-            });
+            callback(null, file);
         });
-    }
+    });
 };
 
-exports.createImage = function () {
-    if (contentType.isImage(args.mimetype)) {
-        fileManager.uploadThenDeleteLocalFile(args.filepath, filename, args.extension, args.secure, function (err, imgFilepath) {
-            if (err) {
-                return callback(err);
-            }
-
-            me.sendThumbnailToSockets(args.author, args.socketId, imgFilepath);
-
-            args._id = imgFilepath;
-            args.thumbnails = {
-                large: imgFilepath
-            };
-
-            FileModel(args).save(function (err, file) {
-                callback(err, file ? file : null);
-            });
-        });
+exports.createImage = function (file, callback) {
+    if (!contentType.isImage(file.mimetype)) {
+        return callback(new SGError('NOT_IMAGE'));
     }
+
+    file.thumbnails = {
+        large: file._id
+    };
+
+    callback(null, file);
 };
 
-exports.createDocument = function () {
+exports.createDocument = function (file, s3Service, callback) {
+    var self = this;
     async.parallel([
-
-        function (callback) {
-            if (args.mimetype == contentType.getContentType('pdf')) {
+        function getPDF(callback) {
+            if (file.mimetype == contentType.getContentType('pdf')) {
                 return callback();
             }
-            me.createPDFCommand(args.filepath, function (err, pdfFilepath) {
+            docsplitHelper.createPDFCommand(file.filepath, s3Service, function (err, pdfFilepath) {
                 if (err) {
                     console.log("Error pdf");
                     return callback(err);
                 }
-                args.pdf_file = pdfFilepath;
+                file.pdf_file = pdfFilepath;
+
+                sgMessagingServer().publish('file:pdf_file', {
+                    file: file
+                }, function (err, response) {
+                    console.log(response);
+                });
+
                 callback();
             }).execute();
         },
-        function (callback) {
-            me.createPageshotCommand(args.filepath, function (err, imgFilepath) {
+        function getPageshot(callback) {
+            docsplitHelper.createPageshotCommand(file.filepath, s3Service, function (err, imgFilepath) {
                 if (err) {
                     // console.log("Error snapshot");
                     // return callback(err);
                     return callback();
                 }
 
-                me.sendThumbnailToSockets(args.author, args.socketId, imgFilepath);
-
-                args.thumbnails = {
+                file.thumbnails = {
                     large: imgFilepath
                 };
+
+                sgMessagingServer().publish('file:thumbnail', {
+                    file: file
+                }, function (err, response) {
+                    console.log(response);
+                });
+
                 callback();
             }).execute();
         },
-        function (callback) {
-            me.createPageLengthCommand(args.filepath, function (err, length) {
+        function getLength(callback) {
+            docsplitHelper.createPageLengthCommand(file.filepath, function (err, length) {
                 if (err) {
                     console.log("Error page length");
                     return callback(err);
                 }
-                args.pages = length;
-                console.log("pages : " + args.pages);
+                file.pages = length;
+                console.log("pages : " + file.pages);
+
+                sgMessagingServer().publish('file:pages', {
+                    file: file
+                }, function (err, response) {
+                    console.log(response);
+                });
+
                 callback();
             }).execute();
         },
-        function (callback) {
-            me.getTextFromFile(args.mimetype, args.filepath, function (err, data) {
+        function getText(callback) {
+            docsplitHelper.getTextFromFile(file.mimetype, file.filepath, function (err, data) {
                 if (err) {
                     console.log("Error text");
                     return callback(err);
                 }
-                args.contentData = sanitize.clearText(data);
+                file.contentData = sanitize.clearText(data);
                 callback();
             });
         },
-        function (callback) {
-            fileManager.getSize(args.filepath, function (err, size) {
+        function getSize(callback) {
+            FSService.getSize(file.filepath, function (err, size) {
                 if (err) {
                     return callback(err);
                 }
 
-                args.size = size;
+                file.size = size;
+
+                sgMessagingServer().publish('file:size', {
+                    file: file
+                }, function (err, response) {
+                    console.log(response);
+                });
+
                 callback();
             });
         }
@@ -168,55 +195,17 @@ exports.createDocument = function () {
             console.log("one or more comamnd fail");
             return callback(err);
         }
+
         console.log('------------------------------------');
         console.log('\n> DIR Scan - 9');
-        console.log(fs.readdirSync(path.dirname(args.filepath)));
+        console.log(fs.readdirSync(path.dirname(file.filepath)));
         console.log('------------------------------------');
-        fileManager.uploadThenDeleteLocalFile(args.filepath, filename, args.extension, true, function (err, filepath) {
-            console.log('------------------------------------');
-            console.log('\n> DIR Scan - 10');
-            console.log(fs.readdirSync(path.dirname(args.filepath)));
-            console.log('------------------------------------');
-            if (err) {
-                console.log("After processing");
-                console.log(err);
-                return callback(err);
-            }
-            args._id = filepath;
 
-            FileModel(args).save(callback);
-        });
+        callback(null, file);
     });
 };
 
-exports.createFile = function (args, callback) {
-    if (!args.base64data) {
-        return callback(new SGError("no data for file"), null);
-    }
-
-    console.log("args.filename: ", args.filename);
-
-    fileManager.writeFileToS3(args.base64data, args.filename, args.extension, args.secure, function (err, filename) {
-        if (err) {
-            return callback(err);
-        }
-
-        var FileModel = model("File");
-        var file = FileModel({
-            _id: config.AWS.s3StaticURL + "/" + config.AWS.s3BucketName + '/' + filename,
-            filename: filename,
-            extension: args.extension
-            // author: args.author
-        });
-
-        if (args.author) {
-            file.author = args.author;
-        }
-
-        file.save(callback);
-    });
-};
-
+// TODO refactor
 exports.removeFiles = function (files, callback) {
     var filenames = [];
 

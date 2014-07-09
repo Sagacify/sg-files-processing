@@ -1,4 +1,10 @@
-exports.createSnapshot = function (filepath, callback) {
+var FSService = require('sg-files-system').FSService;
+var fs = require('fs-extra');
+var path = require('path');
+var FFmpeg = require('fluent-ffmpeg');
+var util = require('util');
+
+exports.createSnapshot = function (filepath, s3Service, callback) {
     var FFmpegmeta = FFmpeg.Metadata;
 
     new FFmpegmeta(filepath, function (metadata, err) {
@@ -6,7 +12,7 @@ exports.createSnapshot = function (filepath, callback) {
             return callback(err);
         }
 
-        console.log(require('util').inspect(metadata, false, null));
+        console.log(util.inspect(metadata, false, null));
 
         var width = metadata.video.resolution.w;
         var height = metadata.video.resolution.h;
@@ -15,12 +21,11 @@ exports.createSnapshot = function (filepath, callback) {
             source: filepath
         }).withSize(width + 'x' + height).on('error', function (err) {
             console.log('An error occurred: ' + err.message);
-            //return callback(err);
-            callback();
+            return callback(err);
         }).on('end', function (filenames) {
             console.log('Successfully generated ' + filenames.join(', ') + " in " + path.dirname(filepath));
 
-            fileManager.uploadThenDeleteLocalFile(path.join(path.dirname(filepath), filenames[0]), filenames[0], 'jpg', true, callback);
+            s3Service.uploadThenDeleteLocalFile(path.join(path.dirname(filepath), filenames[0]), filenames[0], 'jpg', true, callback);
         }).takeScreenshots({
             count: 1,
             timemarks: ['1']
@@ -28,11 +33,12 @@ exports.createSnapshot = function (filepath, callback) {
     });
 };
 
-exports.createPDFCommand = function (filepath, callback) {
+exports.createPDFCommand = function (filepath, s3Service, callback) {
     console.log('------------------------------------');
     console.log('\n> DIR Scan - 1');
     console.log(fs.readdirSync(path.dirname(filepath)));
     console.log('------------------------------------');
+
     return new commandFactory.PDFCommand(filepath, [], {
         "output": path.dirname(filepath)
     }, function (error, stderr, stdout) {
@@ -45,15 +51,16 @@ exports.createPDFCommand = function (filepath, callback) {
         }
         var filename = path.basename(filepath, path.extname(filepath)) + '.pdf';
         var newFilepath = path.join(path.dirname(filepath), filename);
-        fileManager.uploadThenDeleteLocalFile(newFilepath, filename, 'pdf', true, callback);
+        s3Service.uploadThenDeleteLocalFile(newFilepath, filename, 'pdf', true, callback);
     });
 };
 
-exports.createPageshotCommand = function (filepath, callback) {
+exports.createPageshotCommand = function (filepath, s3Service, callback) {
     console.log('------------------------------------');
     console.log('\n> DIR Scan - 3');
     console.log(fs.readdirSync(path.dirname(filepath)));
     console.log('------------------------------------');
+
     return commandFactory.ImageCommand(filepath, [], {
         "output": path.dirname(filepath),
         'format': 'jpg',
@@ -63,13 +70,14 @@ exports.createPageshotCommand = function (filepath, callback) {
         console.log('\n> DIR Scan - 4');
         console.log(fs.readdirSync(path.dirname(filepath)));
         console.log('------------------------------------');
+
         if (error || stderr) {
             return callback((error || stderr) + "\n" + stdout);
         }
 
         var filename = path.basename(filepath, path.extname(filepath)) + '_1.jpg';
         var newFilepath = path.join(path.dirname(filepath), filename);
-        fileManager.uploadThenDeleteLocalFile(newFilepath, filename, 'jpg', true, callback);
+        s3Service.uploadThenDeleteLocalFile(newFilepath, filename, 'jpg', true, callback);
     });
 };
 
@@ -78,11 +86,13 @@ exports.createPageLengthCommand = function (filepath, callback) {
     console.log('\n> DIR Scan - 5');
     console.log(fs.readdirSync(path.dirname(filepath)));
     console.log('------------------------------------');
+
     return commandFactory.LengthCommand(filepath, [], {}, function (error, stderr, stdout) {
         console.log('------------------------------------');
         console.log('\n> DIR Scan - 6');
         console.log(fs.readdirSync(path.dirname(filepath)));
         console.log('------------------------------------');
+
         if (error || stderr) {
             return callback((error || stderr) + "\n" + stdout);
         }
@@ -104,7 +114,7 @@ exports.createTextCommand = function (filepath, callback) {
         }
         var filename = path.basename(filepath, path.extname(filepath)) + '.txt';
         var newFilepath = path.join(path.dirname(filepath), filename);
-        fileManager.readThenDeleteLocalFile(newFilepath, function (err, data) {
+        FSService.readThenDeleteLocalFile(newFilepath, function (err, data) {
             callback(err, data ? data.toString() : null);
         });
     });
@@ -115,6 +125,7 @@ exports.getTextFromFile = function (mimetype, filepath, callback) {
     console.log('\n> DIR Scan - 7');
     console.log(fs.readdirSync(path.dirname(filepath)));
     console.log('------------------------------------');
+
     if (mimetype != contentType.getContentType('txt')) {
         this.createTextCommand(filepath, callback).execute();
     } else {
@@ -123,6 +134,7 @@ exports.getTextFromFile = function (mimetype, filepath, callback) {
             console.log('\n> DIR Scan - 8');
             console.log(fs.readdirSync(path.dirname(filepath)));
             console.log('------------------------------------');
+
             callback(err, data ? data.toString() : null);
         });
     }
