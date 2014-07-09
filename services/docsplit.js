@@ -6,6 +6,7 @@ var sanitize = require('node-lib').sanitize;
 
 var sgFilesSystem = require('sg-files-system');
 var FSService = sgFilesSystem.FSService;
+var S3Service = sgFilesSystem.S3Service;
 
 var SgMessagingServer = require('sg-messaging-server');
 var sgMessagingServer = new SgMessagingServer();
@@ -16,7 +17,7 @@ var async = require('async');
 
 exports.extractAll = function (file, fileConfig, s3Config, callback) {
     var self = this;
-    var s3Service = new sgFilesSystem.S3Service(s3Config);
+    var s3Service = new S3Service(s3Config);
     file.secure = true;
 
     // TODO change fileConfig.bucket with file.secure
