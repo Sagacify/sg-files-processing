@@ -15,7 +15,7 @@ var q = async.queue(function (shellCommand, callback) {
 		count--;
 		callback.apply(this, arguments);
 	});
-}, 7);
+}, 1);
 
 function Command(type, sourceFile, argsArray, argsDict, callback)  {
 	this.type = type;
