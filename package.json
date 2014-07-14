@@ -29,6 +29,6 @@
 		"sg-messaging-server": "git+ssh://git@github.com:Sagacify/sg-messaging-server.git"
 	},
 	"scripts": {
-		"preinstall": "if gem list -i docsplit; then echo 'coucou'; fi"
+		"preinstall": "if ! gem list -i docsplit; then echo sudo gem install docsplit; fi"
 	}
 }

@@ -51,13 +51,22 @@ exports.extractAll = function (file, fileConfig, s3Config, callback) {
                 exports.createVideo(file, s3Service, callback);
                 break;
             case 'ARCHIVE':
-                return callback(new SGError('NOT_YET_SUPPORTED'));
+                exports.createArchive(file, s3Service, callback);
+                break;
             case 'DOCUMENT':
                 exports.createDocument(file, s3Service, callback);
                 break;
             }
         });
     });
+};
+
+exports.createArchive = function (file, s3Service, callback) {
+    if (!contentType.isArchive(file.mimetype)) {
+        return callback(new SGError('NOT_ARCHIVE'));
+    }
+
+    callback(null, file);
 };
 
 exports.createVideo = function (file, s3Service, callback) {
@@ -74,7 +83,7 @@ exports.createVideo = function (file, s3Service, callback) {
             large: snapshot
         };
 
-        sgMessagingServer().publish('file:thumbnail', {
+        sgMessagingServer().publish('file:' + file._id, {
             file: file
         }, function (err, response) {
             console.log(response);
@@ -105,6 +114,7 @@ exports.createImage = function (file, callback) {
 exports.createDocument = function (file, s3Service, callback) {
     var self = this;
     async.parallel([
+
         function getPDF(callback) {
             if (file.mimetype == contentType.getContentType('pdf')) {
                 return callback();
@@ -116,7 +126,7 @@ exports.createDocument = function (file, s3Service, callback) {
                 }
                 file.pdf_file = pdfFilepath;
 
-                sgMessagingServer().publish('file:pdf_file', {
+                sgMessagingServer().publish('file:' + file._id, {
                     file: file
                 }, function (err, response) {
                     console.log(response);
@@ -137,7 +147,7 @@ exports.createDocument = function (file, s3Service, callback) {
                     large: imgFilepath
                 };
 
-                sgMessagingServer().publish('file:thumbnail', {
+                sgMessagingServer().publish('file:' + file._id, {
                     file: file
                 }, function (err, response) {
                     console.log(response);
@@ -155,7 +165,7 @@ exports.createDocument = function (file, s3Service, callback) {
                 file.pages = length;
                 console.log("pages : " + file.pages);
 
-                sgMessagingServer().publish('file:pages', {
+                sgMessagingServer().publish('file:' + file._id, {
                     file: file
                 }, function (err, response) {
                     console.log(response);
@@ -182,7 +192,7 @@ exports.createDocument = function (file, s3Service, callback) {
 
                 file.size = size;
 
-                sgMessagingServer().publish('file:size', {
+                sgMessagingServer().publish('file:' + file._id, {
                     file: file
                 }, function (err, response) {
                     console.log(response);
