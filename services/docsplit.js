@@ -36,12 +36,15 @@ exports.extractAll = function (file, key, s3Config, callback) {
 
 exports.launch = function (file, s3ServiceOrConfig, callback) {
     console.log("typeof s3ServiceOrConfig", typeof s3ServiceOrConfig);
+    console.log("typeof {}", typeof {});
+
     var s3Service = s3ServiceOrConfig;
     // if (s3ServiceOrConfig) {
     //     s3Service = new S3Service(s3ServiceOrConfig);
     // }
-
-    file.title = file.filename;
+    
+    var filename = file.filename;
+    file.title = filename;
     file.filename = contentType.getName(filename);
     file.extension = contentType.getExt(filename);
     file.mimetype = contentType.getContentType(file.extension);
@@ -92,8 +95,6 @@ exports.createVideo = function (file, s3Service, callback) {
 
         sgMessagingServer().publish('file:' + file._id, {
             file: file
-        }, function (err, response) {
-            console.log(response);
         });
 
         fs.unlink(file.filepath, function (err) {
@@ -134,8 +135,6 @@ exports.createDocument = function (file, s3Service, callback) {
 
                 sgMessagingServer().publish('file:' + file._id, {
                     file: file
-                }, function (err, response) {
-                    console.log(response);
                 });
 
                 callback();
@@ -155,8 +154,6 @@ exports.createDocument = function (file, s3Service, callback) {
 
                 sgMessagingServer().publish('file:' + file._id, {
                     file: file
-                }, function (err, response) {
-                    console.log(response);
                 });
 
                 callback();
@@ -173,8 +170,6 @@ exports.createDocument = function (file, s3Service, callback) {
 
                 sgMessagingServer().publish('file:' + file._id, {
                     file: file
-                }, function (err, response) {
-                    console.log(response);
                 });
 
                 callback();
@@ -200,8 +195,6 @@ exports.createDocument = function (file, s3Service, callback) {
 
                 sgMessagingServer().publish('file:' + file._id, {
                     file: file
-                }, function (err, response) {
-                    console.log(response);
                 });
 
                 callback();
