@@ -15,35 +15,43 @@ var fs = require('fs-extra');
 var path = require('path');
 var async = require('async');
 
-exports.extractAll = function (file, fileConfig, s3Config, callback) {
-    var self = this;
+exports.extractAll = function (file, key, s3Config, callback) {
     var s3Service = new S3Service(s3Config);
-    file.secure = true;
 
-    // TODO change fileConfig.bucket with file.secure
-    s3Service.getFileFromS3AndWriteItToFileSystem(fileConfig.key, fileConfig.bucket, function (err, filepath) {
+    s3Service.getFileFromS3AndWriteItToFileSystem(key, file.secure, function (err, filepath) {
         if (err) {
             return callback(err);
         }
 
         file.filepath = filepath;
 
-        fs.exists(file.filepath, function (exists) {
-            if (!exists) {
-                return callback(new SGError(file.filepath + " doesn't exist !"));
-            }
+        exports.launch(file, s3Service, function (err, file) {
+            fs.unlink(file.filepath);
+            delete file.filepath;
 
-            var filename = fileConfig.name;
-            file.title = filename;
-            console.log("title : " + file.title);
-            file.filename = contentType.getName(filename);
-            console.log("filename : " + file.filename);
-            file.extension = contentType.getExt(filename);
-            console.log("extension : " + file.extension);
-            file.mimetype = contentType.getContentType(file.extension);
-            console.log("mimetype : " + file.mimetype);
+            callback(err, file);
+        });
+    });
+};
 
-            switch (contentType.getMediaType(file.mimetype)) {
+exports.launch = function (file, s3ServiceOrConfig, callback) {
+    console.log("typeof s3ServiceOrConfig", typeof s3ServiceOrConfig);
+    var s3Service = s3ServiceOrConfig;
+    // if (s3ServiceOrConfig) {
+    //     s3Service = new S3Service(s3ServiceOrConfig);
+    // }
+
+    file.title = file.filename;
+    file.filename = contentType.getName(filename);
+    file.extension = contentType.getExt(filename);
+    file.mimetype = contentType.getContentType(file.extension);
+
+    fs.exists(file.filepath, function (exists) {
+        if (!exists) {
+            return callback(new SGError(file.filepath + " doesn't exist !"));
+        }
+
+        switch (contentType.getMediaType(file.mimetype)) {
             case 'IMAGE':
                 exports.createImage(file, callback);
                 break;
@@ -56,8 +64,7 @@ exports.extractAll = function (file, fileConfig, s3Config, callback) {
             case 'DOCUMENT':
                 exports.createDocument(file, s3Service, callback);
                 break;
-            }
-        });
+        }
     });
 };
 
@@ -114,7 +121,6 @@ exports.createImage = function (file, callback) {
 exports.createDocument = function (file, s3Service, callback) {
     var self = this;
     async.parallel([
-
         function getPDF(callback) {
             if (file.mimetype == contentType.getContentType('pdf')) {
                 return callback();
