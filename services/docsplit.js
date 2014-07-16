@@ -35,14 +35,12 @@ exports.extractAll = function (file, key, s3Config, callback) {
 };
 
 exports.launch = function (file, s3ServiceOrConfig, callback) {
-    console.log("typeof s3ServiceOrConfig", typeof s3ServiceOrConfig);
-    console.log("typeof {}", typeof {});
-
     var s3Service = s3ServiceOrConfig;
-    // if (s3ServiceOrConfig) {
-    //     s3Service = new S3Service(s3ServiceOrConfig);
-    // }
-    
+
+    if (!s3ServiceOrConfig instanceof S3Service) {
+        s3Service = new S3Service(s3ServiceOrConfig);
+    }
+
     var filename = file.filename;
     file.title = filename;
     file.filename = contentType.getName(filename);
