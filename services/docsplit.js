@@ -15,6 +15,42 @@ var fs = require('fs-extra');
 var path = require('path');
 var async = require('async');
 
+exports.extractFromLink = function (link, s3Config, callback) {
+    var s3Service = new S3Service(s3Config);
+    var file = {
+        filename: link.filename,
+        secure: true
+    };
+
+    FSService.getFileFromUrl(link.url, file.filename, function (err, filepath) {
+        if (err) {
+            return callback(err);
+        }
+
+        file.filepath = filepath;
+
+        s3Service.uploadFileOnS3(filepath, file.filename, contentType.getExt(filename), true, function (err, _id) {
+            if (err) {
+                return callback(err);
+            }
+
+            file._id = _id;
+
+            sgMessagingServer().publish('link:' + link._id + ':file', {
+                link: link,
+                file: file
+            });
+
+            exports.launch(file, s3Service, function (err, file) {
+                fs.unlink(file.filepath);
+                delete file.filepath;
+
+                callback(err, file);
+            });
+        });
+    });
+};
+
 exports.extractAll = function (file, key, s3Config, callback) {
     var s3Service = new S3Service(s3Config);
 
@@ -53,18 +89,18 @@ exports.launch = function (file, s3ServiceOrConfig, callback) {
         }
 
         switch (contentType.getMediaType(file.mimetype)) {
-            case 'IMAGE':
-                exports.createImage(file, callback);
-                break;
-            case 'VIDEO':
-                exports.createVideo(file, s3Service, callback);
-                break;
-            case 'ARCHIVE':
-                exports.createArchive(file, s3Service, callback);
-                break;
-            case 'DOCUMENT':
-                exports.createDocument(file, s3Service, callback);
-                break;
+        case 'IMAGE':
+            exports.createImage(file, callback);
+            break;
+        case 'VIDEO':
+            exports.createVideo(file, s3Service, callback);
+            break;
+        case 'ARCHIVE':
+            exports.createArchive(file, s3Service, callback);
+            break;
+        case 'DOCUMENT':
+            exports.createDocument(file, s3Service, callback);
+            break;
         }
     });
 };
@@ -95,13 +131,7 @@ exports.createVideo = function (file, s3Service, callback) {
             file: file
         });
 
-        fs.unlink(file.filepath, function (err) {
-            if (err) {
-                return callback(err);
-            }
-
-            callback(null, file);
-        });
+        callback(null, file);
     });
 };
 
@@ -120,6 +150,7 @@ exports.createImage = function (file, callback) {
 exports.createDocument = function (file, s3Service, callback) {
     var self = this;
     async.parallel([
+
         function getPDF(callback) {
             if (file.mimetype == contentType.getContentType('pdf')) {
                 return callback();

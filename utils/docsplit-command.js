@@ -44,9 +44,9 @@ Command.prototype.execute = function (callback) {
 
 	console.log(shellCommand);
 
-	q.push(shellCommand, callback ? callback : this.callback);
+	q.push(shellCommand, callback || this.callback);
 	
-	// nodeShell.execute(shellCommand, callback ? callback : this.callback);
+	// nodeShell.execute(shellCommand, callback || this.callback);
 	// nodeShell.execute(shellCommand, callback);
 };
 
