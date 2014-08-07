@@ -1,4 +1,9 @@
+var commandFactory = require('../utils/docsplit-command');
+
+var contentType = require('node-lib').content_type.ext;
+var is = require('node-lib').validateType;
 var FSService = require('sg-files-system').FSService;
+
 var fs = require('fs-extra');
 var path = require('path');
 var FFmpeg = require('fluent-ffmpeg');
@@ -138,4 +143,16 @@ exports.getTextFromFile = function (mimetype, filepath, callback) {
             callback(err, data ? data.toString() : null);
         });
     }
+};
+
+exports.setSize = function (file, callback) {
+    FSService.getSize(file.filepath, function (err, size) {
+        if (err) {
+            return callback(err);
+        }
+
+        file.size = size;
+
+        callback(null, file);
+    });
 };

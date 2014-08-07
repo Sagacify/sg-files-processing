@@ -18,18 +18,18 @@ var async = require('async');
 exports.extractFromLink = function (link, s3Config, callback) {
     var s3Service = new S3Service(s3Config);
     var file = {
-        filename: link.filename,
         secure: true
     };
 
-    FSService.getFileFromUrl(link.url, file.filename, function (err, filepath) {
+    FSService.getFileFromUrl(link.url, function (err, filepath, filename) {
         if (err) {
             return callback(err);
         }
 
         file.filepath = filepath;
+        file.filename = filename;
 
-        s3Service.uploadFileOnS3(filepath, file.filename, contentType.getExt(filename), true, function (err, _id) {
+        s3Service.uploadFileOnS3(filepath, file.filename, contentType.getExt(file.filename), true, function (err, _id) {
             if (err) {
                 return callback(err);
             }
@@ -41,7 +41,7 @@ exports.extractFromLink = function (link, s3Config, callback) {
                 file: file
             });
 
-            exports.launch(file, s3Service, function (err, file) {
+            exports.launch(file, s3Service, function (err) {
                 fs.unlink(file.filepath);
                 delete file.filepath;
 
@@ -61,7 +61,7 @@ exports.extractAll = function (file, key, s3Config, callback) {
 
         file.filepath = filepath;
 
-        exports.launch(file, s3Service, function (err, file) {
+        exports.launch(file, s3Service, function (err) {
             fs.unlink(file.filepath);
             delete file.filepath;
 
@@ -110,7 +110,7 @@ exports.createArchive = function (file, s3Service, callback) {
         return callback(new SGError('NOT_ARCHIVE'));
     }
 
-    callback(null, file);
+    docsplitHelper.setSize(file, callback);
 };
 
 exports.createVideo = function (file, s3Service, callback) {
@@ -118,18 +118,42 @@ exports.createVideo = function (file, s3Service, callback) {
         return callback(new SGError('NOT_VIDEO'));
     }
 
-    docsplitHelper.createSnapshot(file.filepath, s3Service, function (err, snapshot) {
+    async.parallel([
+        function getSnapshot (callback) {
+            docsplitHelper.createSnapshot(file.filepath, s3Service, function (err, snapshot) {
+                if (err) {
+                    return callback(err);
+                }
+
+                file.thumbnails = {
+                    large: snapshot
+                };
+
+                sgMessagingServer().publish('file:' + file._id, {
+                    file: file
+                });
+
+                callback();
+            });
+        },
+        function getSize (callback) {
+            docsplitHelper.setSize(file, function (err, file) {
+                if (err) {
+                    return callback(err);
+                }
+
+                sgMessagingServer().publish('file:' + file._id, {
+                    file: file
+                });
+
+                callback();
+            });
+        }
+    ], function (err) {
         if (err) {
+            console.log("one or more command fail");
             return callback(err);
         }
-
-        file.thumbnails = {
-            large: snapshot
-        };
-
-        sgMessagingServer().publish('file:' + file._id, {
-            file: file
-        });
 
         callback(null, file);
     });
@@ -144,13 +168,16 @@ exports.createImage = function (file, callback) {
         large: file._id
     };
 
-    callback(null, file);
+    sgMessagingServer().publish('file:' + file._id, {
+        file: file
+    });
+
+    docsplitHelper.setSize(file, callback);
 };
 
 exports.createDocument = function (file, s3Service, callback) {
     var self = this;
     async.parallel([
-
         function getPDF(callback) {
             if (file.mimetype == contentType.getContentType('pdf')) {
                 return callback();
@@ -215,12 +242,10 @@ exports.createDocument = function (file, s3Service, callback) {
             });
         },
         function getSize(callback) {
-            FSService.getSize(file.filepath, function (err, size) {
+            docsplitHelper.setSize(file, function (err, file) {
                 if (err) {
                     return callback(err);
                 }
-
-                file.size = size;
 
                 sgMessagingServer().publish('file:' + file._id, {
                     file: file
@@ -231,7 +256,7 @@ exports.createDocument = function (file, s3Service, callback) {
         }
     ], function (err, results) {
         if (err) {
-            console.log("one or more comamnd fail");
+            console.log("one or more command fail");
             return callback(err);
         }
 
