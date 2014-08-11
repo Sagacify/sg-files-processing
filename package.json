@@ -27,8 +27,5 @@
 		"node-lib": "git+ssh://git@github.com:Sagacify/node-lib.git#worker",
 		"sg-files-system": "git+ssh://git@github.com:Sagacify/sg-files-system.git",
 		"sg-messaging-server": "git+ssh://git@github.com:Sagacify/sg-messaging-server.git"
-	},
-	"scripts": {
-		"preinstall": "if ! gem list -i docsplit; then gem install docsplit; fi"
 	}
 }
