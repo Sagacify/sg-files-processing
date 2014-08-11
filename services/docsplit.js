@@ -7,16 +7,18 @@ var sanitize = require('node-lib').sanitize;
 var sgFilesSystem = require('sg-files-system');
 var FSService = sgFilesSystem.FSService;
 var S3Service = sgFilesSystem.S3Service;
+var s3Service;
 
 var SgMessagingServer = require('sg-messaging-server');
-var sgMessagingServer = new SgMessagingServer();
+var sgMessagingServer;
 
 var fs = require('fs-extra');
 var path = require('path');
 var async = require('async');
 
-exports.extractFromLink = function (link, s3Config, callback) {
+exports.extractFromLink = function (link, s3Config, redisConfig, callback) {
     var s3Service = new S3Service(s3Config);
+    sgMessagingServer = new SgMessagingServer(redisConfig);
     var file = {
         secure: true
     };
@@ -41,7 +43,7 @@ exports.extractFromLink = function (link, s3Config, callback) {
                 file: file
             });
 
-            exports.launch(file, s3Service, function (err) {
+            exports.launch(file, s3Service, redisConfig, function (err) {
                 fs.unlink(file.filepath);
                 delete file.filepath;
 
@@ -51,8 +53,9 @@ exports.extractFromLink = function (link, s3Config, callback) {
     });
 };
 
-exports.extractAll = function (file, key, s3Config, callback) {
+exports.extractAll = function (file, key, s3Config, redisConfig, callback) {
     var s3Service = new S3Service(s3Config);
+    sgMessagingServer = new SgMessagingServer(redisConfig);
 
     s3Service.getFileFromS3AndWriteItToFileSystem(key, file.secure, function (err, filepath) {
         if (err) {
@@ -61,7 +64,7 @@ exports.extractAll = function (file, key, s3Config, callback) {
 
         file.filepath = filepath;
 
-        exports.launch(file, s3Service, function (err) {
+        exports.launch(file, s3Service, redisConfig, function (err) {
             fs.unlink(file.filepath);
             delete file.filepath;
 
@@ -70,8 +73,11 @@ exports.extractAll = function (file, key, s3Config, callback) {
     });
 };
 
-exports.launch = function (file, s3ServiceOrConfig, callback) {
+exports.launch = function (file, s3ServiceOrConfig, redisConfig, callback) {
     var s3Service = s3ServiceOrConfig;
+    if (!sgMessagingServer) {
+        sgMessagingServer = new SgMessagingServer(redisConfig);
+    }
 
     if (!s3ServiceOrConfig instanceof S3Service) {
         s3Service = new S3Service(s3ServiceOrConfig);
