@@ -5,7 +5,7 @@
 	"private": true,
 	"author": "Sagacify (https://github.com/Sagacify)",
 	"engines": {
-		"node": "latest"
+		"node": "~0.10.29"
 	},
 	"main": "services/docsplit",
 	"repository": {
