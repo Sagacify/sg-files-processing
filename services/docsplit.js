@@ -31,7 +31,7 @@ exports.extractFromLink = function (link, s3Config, redisConfig, callback) {
         file.filepath = filepath;
         file.filename = filename;
 
-        s3Service.uploadFileOnS3(filepath, file.filename, contentType.getExt(file.filename), true, function (err, _id) {
+        s3Service.uploadFileOnS3(file.filepath, file.filename, contentType.getExt(file.filename), true, function (err, _id) {
             if (err) {
                 return callback(err);
             }
@@ -49,6 +49,28 @@ exports.extractFromLink = function (link, s3Config, redisConfig, callback) {
 
                 callback(err, file);
             });
+        });
+    });
+};
+
+exports.extractFromLocal = function (file, s3Config, redisConfid, callback) {
+    var s3Service = new S3Service(s3Config);
+    sgMessagingServer = new SgMessagingServer(redisConfig);
+
+    file.secure = true;
+
+    s3Service.uploadFileOnS3(file.filepath, file.filename, contentType.getExt(file.filename), true, function (err, _id) {
+        if (err) {
+            return callback(err);
+        }
+
+        file._id = _id;
+
+        exports.launch(file, s3Service, redisConfig, function (err) {
+            fs.unlink(file.filepath);
+            delete file.filepath;
+
+            callback(err, file);
         });
     });
 };
@@ -125,7 +147,8 @@ exports.createVideo = function (file, s3Service, callback) {
     }
 
     async.parallel([
-        function getSnapshot (callback) {
+
+        function getSnapshot(callback) {
             docsplitHelper.createSnapshot(file.filepath, s3Service, function (err, snapshot) {
                 if (err) {
                     return callback(err);
@@ -142,7 +165,7 @@ exports.createVideo = function (file, s3Service, callback) {
                 callback();
             });
         },
-        function getSize (callback) {
+        function getSize(callback) {
             docsplitHelper.setSize(file, function (err, file) {
                 if (err) {
                     return callback(err);
@@ -184,6 +207,7 @@ exports.createImage = function (file, callback) {
 exports.createDocument = function (file, s3Service, callback) {
     var self = this;
     async.parallel([
+
         function getPDF(callback) {
             if (file.mimetype == contentType.getContentType('pdf')) {
                 return callback();
