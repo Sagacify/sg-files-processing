@@ -53,7 +53,7 @@ exports.extractFromLink = function (link, s3Config, redisConfig, callback) {
     });
 };
 
-exports.extractFromLocal = function (file, s3Config, redisConfid, callback) {
+exports.extractFromLocal = function (file, s3Config, redisConfig, callback) {
     var s3Service = new S3Service(s3Config);
     sgMessagingServer = new SgMessagingServer(redisConfig);
 
