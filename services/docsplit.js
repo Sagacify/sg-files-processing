@@ -113,7 +113,7 @@ exports.launch = function (file, s3ServiceOrConfig, redisConfig, callback) {
 
     fs.exists(file.filepath, function (exists) {
         if (!exists) {
-            return callback(new SGError(file.filepath + " doesn't exist !"));
+            return callback(new Error(file.filepath + " doesn't exist !"));
         }
 
         switch (contentType.getMediaType(file.mimetype)) {
@@ -135,7 +135,7 @@ exports.launch = function (file, s3ServiceOrConfig, redisConfig, callback) {
 
 exports.createArchive = function (file, s3Service, callback) {
     if (!contentType.isArchive(file.mimetype)) {
-        return callback(new SGError('NOT_ARCHIVE'));
+        return callback(new Error('NOT_ARCHIVE'));
     }
 
     docsplitHelper.setSize(file, callback);
@@ -143,7 +143,7 @@ exports.createArchive = function (file, s3Service, callback) {
 
 exports.createVideo = function (file, s3Service, callback) {
     if (!contentType.isVideo(file.mimetype)) {
-        return callback(new SGError('NOT_VIDEO'));
+        return callback(new Error('NOT_VIDEO'));
     }
 
     async.parallel([
@@ -190,7 +190,7 @@ exports.createVideo = function (file, s3Service, callback) {
 
 exports.createImage = function (file, callback) {
     if (!contentType.isImage(file.mimetype)) {
-        return callback(new SGError('NOT_IMAGE'));
+        return callback(new Error('NOT_IMAGE'));
     }
 
     file.thumbnails = {
