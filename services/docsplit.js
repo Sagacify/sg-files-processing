@@ -129,8 +129,15 @@ exports.launch = function (file, s3ServiceOrConfig, redisConfig, callback) {
         case 'DOCUMENT':
             exports.createDocument(file, s3Service, callback);
             break;
+        case 'UNKNOWN':
+            exports.createUnknown(file, s3Service, callback);
+            break;
         }
     });
+};
+
+exports.createUnknown = function (file, s3Service, callback) {
+    docsplitHelper.setSize(file, callback);
 };
 
 exports.createArchive = function (file, s3Service, callback) {
