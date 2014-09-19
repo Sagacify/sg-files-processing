@@ -16,7 +16,7 @@ var fs = require('fs-extra');
 var path = require('path');
 var async = require('async');
 
-exports.extractFromLink = function (link, s3Config, redisConfig, callback) {
+exports.extractFromLink = function (link, s3Config, redisConfig, linkCallback, callback) {
     var s3Service = new S3Service(s3Config);
     sgMessagingServer = new SgMessagingServer(redisConfig);
     var file = {
@@ -25,7 +25,7 @@ exports.extractFromLink = function (link, s3Config, redisConfig, callback) {
 
     FSService.getFileFromUrl(link.url, function (err, filepath, filename) {
         if (err) {
-            return callback(err);
+            return linkCallback(err);
         }
 
         file.filepath = filepath;
@@ -33,7 +33,7 @@ exports.extractFromLink = function (link, s3Config, redisConfig, callback) {
 
         s3Service.uploadFileOnS3(file.filepath, file.filename, contentType.getExt(file.filename), true, function (err, _id) {
             if (err) {
-                return callback(err);
+                return linkCallback(err);
             }
 
             file._id = _id;
