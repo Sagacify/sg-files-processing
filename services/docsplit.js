@@ -31,7 +31,7 @@ exports.extractFromLink = function (link, s3Config, redisConfig, linkCallback, c
         file.filepath = filepath;
         file.filename = filename;
 
-        s3Service.uploadFileOnS3(file.filepath, file.filename, contentType.getExt(file.filename), true, function (err, _id) {
+        s3Service.uploadFileOnS3(file.filepath, file.filename, contentType.getExt(file.filename), file.secure, function (err, _id) {
             if (err) {
                 return linkCallback(err);
             }
