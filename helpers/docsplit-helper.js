@@ -1,13 +1,18 @@
-var commandFactory = require('../utils/docsplit-command');
+// Node.js core module
+var path = require('path');
+var util = require('util');
 
+// NPM modules
+var fs = require('fs-extra');
+var FFmpeg = require('fluent-ffmpeg');
+
+// SSH modules
 var contentType = require('node-lib').content_type.ext;
 var is = require('node-lib').validateType;
 var FSService = require('sg-files-system').FSService;
 
-var fs = require('fs-extra');
-var path = require('path');
-var FFmpeg = require('fluent-ffmpeg');
-var util = require('util');
+// Local modules
+var commandFactory = require('../utils/docsplit-command');
 
 exports.createSnapshot = function (filepath, s3Service, callback) {
     var FFmpegmeta = FFmpeg.Metadata;

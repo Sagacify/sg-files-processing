@@ -1,20 +1,26 @@
-var commandFactory = require('../utils/docsplit-command');
-var docsplitHelper = require('../helpers/docsplit-helper');
+// Node.js core module
+var path = require('path');
 
+// NPM modules
+var fs = require('fs-extra');
+var async = require('async');
+
+// SSH modules
 var contentType = require('node-lib').content_type.ext;
 var sanitize = require('node-lib').sanitize;
 
 var sgFilesSystem = require('sg-files-system');
 var FSService = sgFilesSystem.FSService;
 var S3Service = sgFilesSystem.S3Service;
-var s3Service;
 
 var SgMessagingServer = require('sg-messaging-server');
 var sgMessagingServer;
 
-var fs = require('fs-extra');
-var path = require('path');
-var async = require('async');
+// Local modules
+var commandFactory = require('../utils/docsplit-command');
+var docsplitHelper = require('../helpers/docsplit-helper');
+
+var s3Service;
 
 exports.extractFromLink = function (link, s3Config, redisConfig, linkCallback, callback) {
     var s3Service = new S3Service(s3Config);

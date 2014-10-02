@@ -1,10 +1,13 @@
-// --output or -o can be passed to any command in order to store the generated files in a directory of your choosing. 
-var nodeShell = require('node-lib').child_process;
-var async = require("async");
+// Node.js core module
 var os = require('os');
 
-var baseCommand = (os.type() == 'Linux' ? 'sudo /usr/local/bin/docsplit' : 'docsplit');
+// NPM modules
+var async = require('async');
 
+// SSH modules
+var nodeShell = require('node-lib').child_process;
+
+var baseCommand = (os.type() == 'Linux' ? 'sudo /usr/local/bin/docsplit' : 'docsplit');
 var count = 0;
 
 var q = async.queue(function (shellCommand, callback) {
@@ -45,9 +48,6 @@ Command.prototype.execute = function (callback) {
 	console.log(shellCommand);
 
 	q.push(shellCommand, callback || this.callback);
-	
-	// nodeShell.execute(shellCommand, callback || this.callback);
-	// nodeShell.execute(shellCommand, callback);
 };
 
 exports.eachExecute = function (commands, callback) {
@@ -93,3 +93,5 @@ exports.TextCommand = function (sourceFile, argsArray, argsDict, callback) {
 exports.LengthCommand = function (sourceFile, argsArray, argsDict, callback) {
 	return new Command('length', sourceFile, argsArray, argsDict, callback);
 };
+
+// --output or -o can be passed to any command in order to store the generated files in a directory of your choosing. 
