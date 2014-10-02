@@ -15,31 +15,32 @@ var FSService = require('sg-files-system').FSService;
 var commandFactory = require('../utils/docsplit-command');
 
 exports.createSnapshot = function (filepath, s3Service, callback) {
-    var FFmpegmeta = FFmpeg.Metadata;
+    var ffmpeg = new FFmpeg();
 
-    new FFmpegmeta(filepath, function (metadata, err) {
+    ffmpeg(filepath).ffprobe(function (err, metadata) {
         if (err) {
             return callback(err);
         }
 
-        console.log(util.inspect(metadata, false, null));
+        console.log("metadata", metadata);
 
-        var width = metadata.video.resolution.w;
-        var height = metadata.video.resolution.h;
+        var width = metadata.streams[0].width;
+        var height = metadata.streams[0].height;
 
-        new FFmpeg({
-            source: filepath
-        }).withSize(width + 'x' + height).on('error', function (err) {
+        ffmpeg(filepath).screenshots({
+            count: 1,
+            timestamps: ['1'],
+            folder: path.dirname(filepath),
+            size: width + 'x' + height
+        }).on('filenames', function (filenames) {
+            console.log('Successfully generated ' + filenames.join(', ') + " in " + path.dirname(filepath));
+        }).on('end', function () {
+            console.log('Screenshots taken');
+            s3Service.uploadThenDeleteLocalFile(path.join(path.dirname(filepath), filenames[0]), filenames[0], 'jpg', true, callback);
+        }).on('error', function (err) {
             console.log('An error occurred: ' + err.message);
             return callback(err);
-        }).on('end', function (filenames) {
-            console.log('Successfully generated ' + filenames.join(', ') + " in " + path.dirname(filepath));
-
-            s3Service.uploadThenDeleteLocalFile(path.join(path.dirname(filepath), filenames[0]), filenames[0], 'jpg', true, callback);
-        }).takeScreenshots({
-            count: 1,
-            timemarks: ['1']
-        }, path.dirname(filepath));
+        });
     });
 };
 
