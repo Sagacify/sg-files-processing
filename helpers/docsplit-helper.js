@@ -4,7 +4,7 @@ var util = require('util');
 
 // NPM modules
 var fs = require('fs-extra');
-var FFmpeg = require('fluent-ffmpeg');
+var ffmpeg = require('fluent-ffmpeg');
 
 // SSH modules
 var contentType = require('node-lib').content_type.ext;
@@ -15,33 +15,33 @@ var FSService = require('sg-files-system').FSService;
 var commandFactory = require('../utils/docsplit-command');
 
 exports.createSnapshot = function (filepath, s3Service, callback) {
-    var ffmpeg = new FFmpeg();
+    // ffmpeg(filepath).ffprobe(function (err, metadata) {
+    //     if (err) {
+    //         return callback(err);
+    //     }
 
-    ffmpeg(filepath).ffprobe(function (err, metadata) {
-        if (err) {
-            return callback(err);
-        }
+    //     var width = metadata.streams[0].width;
+    //     var height = metadata.streams[0].height;
 
-        console.log("metadata", metadata);
+    //     console.log("size:", width, "x", height);
 
-        var width = metadata.streams[0].width;
-        var height = metadata.streams[0].height;
-
+        var filename;
         ffmpeg(filepath).screenshots({
             count: 1,
             timestamps: ['1'],
             folder: path.dirname(filepath),
-            size: width + 'x' + height
+            // size: width + 'x' + height
         }).on('filenames', function (filenames) {
-            console.log('Successfully generated ' + filenames.join(', ') + " in " + path.dirname(filepath));
+            console.log('Successfully generated screenshot' + filenames.join(', ') + " in " + path.dirname(filepath) + ".");
+            filename = filenames[0];
         }).on('end', function () {
-            console.log('Screenshots taken');
-            s3Service.uploadThenDeleteLocalFile(path.join(path.dirname(filepath), filenames[0]), filenames[0], 'jpg', true, callback);
+            console.log('Screenshot taken.');
+            s3Service.uploadThenDeleteLocalFile(path.join(path.dirname(filepath), filename), filename, 'jpg', true, callback);
         }).on('error', function (err) {
             console.log('An error occurred: ' + err.message);
             return callback(err);
         });
-    });
+    // });
 };
 
 exports.createPDFCommand = function (filepath, s3Service, callback) {
