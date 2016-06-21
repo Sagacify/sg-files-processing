@@ -13,9 +13,9 @@
 		"url": "https://github.com/Sagacify/sg-files-processing.git"
 	},
 	"dependencies": {
-		"async": "~0.9.0",
-		"fluent-ffmpeg": "^2.0.0-rc2",
-		"fs-extra": "~0.12.0",
+		"async": "0.9.0",
+		"fluent-ffmpeg": "2.0.0-rc2",
+		"fs-extra": "0.12.0",
 
 		"node-lib": "git+https://github.com/Sagacify/node-lib.git#worker",
 		"sg-files-system": "git+https://github.com/Sagacify/sg-files-system.git",
