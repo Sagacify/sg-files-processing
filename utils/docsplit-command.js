@@ -7,7 +7,7 @@ var async = require('async');
 // SSH modules
 var nodeShell = require('node-lib').child_process;
 
-var baseCommand = (os.type() == 'Linux' ? 'sudo /usr/local/bin/docsplit' : 'docsplit');
+var baseCommand = (os.type() == 'Linux' ? '/usr/local/bin/docsplit' : 'docsplit');
 var count = 0;
 
 var q = async.queue(function (shellCommand, callback) {
